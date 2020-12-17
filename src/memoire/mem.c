@@ -52,7 +52,10 @@ static inline size_t get_system_memory_size() {
 struct fb {
 	size_t size;
 	struct fb* next;
-	/* ... */
+};
+
+struct bb {
+	size_t size;
 };
 
 /* fonction qui est apeler au début, tout est à faire */
@@ -65,16 +68,16 @@ void mem_init(void* mem, size_t taille)
 	 */
 	assert(mem == get_system_memory_addr());
 	assert(taille == get_system_memory_size());
-	
+
 	//h est un pointeur sur l'allocateur memoire
 	struct allocator_header* h;
 	h = (struct allocator_header*)mem; //on définit h
 	h->memory_size = taille; //on remplit la structure
-	h->first = (struct fb*)(mem + sizeof(struct allocateur_header));
+	h->first = (struct fb*)(mem + sizeof(struct allocator_header));
 	h->first = (struct fb*)(h + 1);
-	
+
 	struct fb* zonelibre = h->first;
-	zonelibre->taille = taille - sizeof(struct allocateur_header);
+	zonelibre->size = taille - sizeof(struct allocator_header);
 	zonelibre->next = NULL;
 	
 	h->fit = &mem_fit_first;
@@ -82,11 +85,20 @@ void mem_init(void* mem, size_t taille)
 }
 
 void mem_show(void (*print)(void *, size_t, int)) {
-	/* ... */
-	while (/* ... */ 0) {
-		/* ... */
-		print(/* ... */NULL, /* ... */0, /* ... */0);
-		/* ... */
+	struct bb *cur_bloc;
+	struct fb *next_freebloc = get_header()->first;
+	cur_bloc = (struct bb*)(get_header()+1);
+	struct bb *fin_memoire = get_system_memory_addr() + get_header()->memory_size;
+	while (cur_bloc < fin_memoire) {
+		int est_bloc_libre;
+		if (cur_bloc == (struct bb*)next_freebloc) {
+			est_bloc_libre = 1;
+			next_freebloc = next_freebloc->next;
+		} else {
+			est_bloc_libre = 0;
+		}
+		print(cur_bloc, cur_bloc->size, est_bloc_libre);
+		cur_bloc = (void*)cur_bloc + cur_bloc->size;
 	}
 }
 
@@ -136,3 +148,4 @@ struct fb* mem_fit_best(struct fb *list, size_t size) {
 struct fb* mem_fit_worst(struct fb *list, size_t size) {
 	return NULL;
 }
+
